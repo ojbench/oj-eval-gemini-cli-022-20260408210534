@@ -12,6 +12,8 @@ int A[N];
 int guess(int n, int Taskid) {
     memset(A, 0, sizeof A);
 
+    // Randomly shuffle the indices to avoid worst-case adversarial inputs
+    // This ensures the expected number of extra queries is O(log n)
     vector<int> P(n);
     iota(P.begin(), P.end(), 1);
     mt19937 rng(1337);
@@ -20,6 +22,7 @@ int guess(int n, int Taskid) {
     int P5[5];
     for(int i=0; i<5; ++i) P5[i] = P[i];
 
+    // Query all 10 combinations of the first 5 elements
     int q_val[5][5][5];
     for(int i=0; i<5; ++i) {
         for(int j=i+1; j<5; ++j) {
@@ -34,6 +37,7 @@ int guess(int n, int Taskid) {
         }
     }
 
+    // Find the exact values and sorted order of the first 5 elements
     int p[5] = {0, 1, 2, 3, 4};
     int u = -1, v = -1, M = -1;
     do {
@@ -75,31 +79,38 @@ int guess(int n, int Taskid) {
         
         if (ok) {
             for(int i=0; i<5; ++i) A[P5[i]] = A_cand[i];
-            u = P5[p[0]];
-            v = P5[p[1]];
-            M = P5[p[4]];
+            u = P5[p[0]]; // Absolute minimum so far
+            v = P5[p[1]]; // Second minimum so far
+            M = P5[p[4]]; // Maximum so far
             break;
         }
     } while(next_permutation(p, p+5));
 
+    // Process the remaining elements
     for(int k=5; k<n; ++k) {
         int i = P[k];
         int qi = query(u, v, i);
         long long S = A[u] + A[v];
+        
         if (qi > S) {
+            // A[i] > A[v]
             A[i] = qi - A[u];
             if (A[i] > A[M]) M = i;
         } else if (qi < S) {
+            // A[i] < A[u], new absolute minimum
             A[i] = qi - A[v];
             v = u;
             u = i;
         } else {
+            // A[u] < A[i] < A[v], new second minimum
+            // Requires 1 extra query to find exact value
             int q_extra = query(i, v, M);
             A[i] = q_extra - A[M];
             v = i;
         }
     }
 
+    // Calculate the final hash
     int ret = 0;
     for (int i = n; i; i--) ret = 1ll * (ret + A[i]) * mul % Mod;
     return ret;
